@@ -2,146 +2,168 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Jogo Monty Hall</title>
+  <title>Jogo Monty Hall (com Estatísticas)</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f0f0f0;
-    }
-
+    body { font-family: Arial, sans-serif; text-align: center; background: #f0f0f0; }
     h1 { margin-top: 20px; }
 
-    .portas {
-      display: flex;
-      justify-content: center;
-      margin-top: 40px;
-      gap: 20px;
-    }
-
+    .portas { display: flex; justify-content: center; margin-top: 30px; gap: 20px; }
     .porta {
-      width: 120px;
-      height: 180px;
-      background: brown;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 20px;
-      border-radius: 10px;
+      width: 120px; height: 180px; background: brown; color: white;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 20px; border-radius: 10px;
     }
+    .aberta { background: gray; cursor: default; }
 
-    .aberta {
-      background: gray;
-      cursor: default;
-    }
+    .resultado { margin-top: 20px; font-size: 20px; }
 
-    .resultado {
+    .painel {
       margin-top: 30px;
-      font-size: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
 
-    button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-    }
+    button { margin-top: 15px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
   </style>
 </head>
 <body>
 
-  <h1>Jogo Monty Hall</h1>
-  <p>Escolha uma porta</p>
+<h1>Monty Hall Interativo</h1>
+<p>Escolha uma porta</p>
 
-  <div class="portas">
-    <div class="porta" data-id="0">1</div>
-    <div class="porta" data-id="1">2</div>
-    <div class="porta" data-id="2">3</div>
-  </div>
+<div class="portas">
+  <div class="porta" data-id="0">1</div>
+  <div class="porta" data-id="1">2</div>
+  <div class="porta" data-id="2">3</div>
+</div>
 
-  <div class="resultado"></div>
+<div class="resultado"></div>
 
-  <button onclick="reiniciar()">Reiniciar</button>
+<div class="painel">
+  <h3>Estatísticas</h3>
+  <p>Jogos: <span id="total">0</span></p>
+  <p>Vitórias mantendo: <span id="vm">0</span></p>
+  <p>Vitórias trocando: <span id="vt">0</span></p>
+  <p>% Manter: <span id="pm">0%</span></p>
+  <p>% Trocar: <span id="pt">0%</span></p>
+</div>
 
-  <script>
-    let carro;
-    let escolhaInicial = null;
-    let portaAberta = null;
-    let fase = 1;
+<button onclick="reiniciar()">Novo Jogo</button>
+<button onclick="resetarEstatisticas()">Resetar Estatísticas</button>
 
-    const portas = document.querySelectorAll('.porta');
-    const resultado = document.querySelector('.resultado');
+<script>
+let carro;
+let escolhaInicial = null;
+let portaAberta = null;
+let fase = 1;
 
-    function iniciarJogo() {
-      carro = Math.floor(Math.random() * 3);
-      escolhaInicial = null;
-      portaAberta = null;
-      fase = 1;
-      resultado.innerText = "Escolha uma porta";
+// Estatísticas
+let totalJogos = 0;
+let vitoriasManter = 0;
+let vitoriasTrocar = 0;
 
-      portas.forEach(p => {
-        p.classList.remove('aberta');
-        p.innerText = parseInt(p.dataset.id) + 1;
-        p.style.pointerEvents = 'auto';
-      });
+const portas = document.querySelectorAll('.porta');
+const resultado = document.querySelector('.resultado');
+
+function atualizarPainel() {
+  document.getElementById('total').innerText = totalJogos;
+  document.getElementById('vm').innerText = vitoriasManter;
+  document.getElementById('vt').innerText = vitoriasTrocar;
+
+  let pm = totalJogos ? (vitoriasManter / totalJogos * 100).toFixed(1) : 0;
+  let pt = totalJogos ? (vitoriasTrocar / totalJogos * 100).toFixed(1) : 0;
+
+  document.getElementById('pm').innerText = pm + '%';
+  document.getElementById('pt').innerText = pt + '%';
+}
+
+function iniciarJogo() {
+  carro = Math.floor(Math.random() * 3);
+  escolhaInicial = null;
+  portaAberta = null;
+  fase = 1;
+
+  resultado.innerText = "Escolha uma porta";
+
+  portas.forEach(p => {
+    p.classList.remove('aberta');
+    p.innerText = parseInt(p.dataset.id) + 1;
+    p.style.pointerEvents = 'auto';
+  });
+}
+
+function abrirPortaCabra() {
+  let opcoes = [];
+  for (let i = 0; i < 3; i++) {
+    if (i !== escolhaInicial && i !== carro) opcoes.push(i);
+  }
+
+  portaAberta = opcoes[Math.floor(Math.random() * opcoes.length)];
+  portas[portaAberta].classList.add('aberta');
+  portas[portaAberta].innerText = '🐐';
+}
+
+function finalizarJogo(escolhaFinal) {
+  totalJogos++;
+
+  const trocou = escolhaFinal !== escolhaInicial;
+  const ganhou = escolhaFinal === carro;
+
+  if (ganhou && !trocou) vitoriasManter++;
+  if (ganhou && trocou) vitoriasTrocar++;
+
+  portas.forEach((p, i) => {
+    p.style.pointerEvents = 'none';
+    if (i === carro) p.innerText = '🚗';
+    else if (i !== portaAberta) p.innerText = '🐐';
+  });
+
+  if (ganhou) {
+    resultado.innerText = trocou ? "🎉 Ganhou trocando!" : "🎉 Ganhou mantendo!";
+  } else {
+    resultado.innerText = trocou ? "😢 Perdeu trocando" : "😢 Perdeu mantendo";
+  }
+
+  atualizarPainel();
+}
+
+portas.forEach(porta => {
+  porta.addEventListener('click', () => {
+    const id = parseInt(porta.dataset.id);
+
+    if (fase === 1) {
+      escolhaInicial = id;
+      abrirPortaCabra();
+      fase = 2;
+      resultado.innerText = "Clique em outra porta para trocar, ou na mesma para manter";
     }
-
-    function abrirPortaCabra() {
-      let opcoes = [];
-      for (let i = 0; i < 3; i++) {
-        if (i !== escolhaInicial && i !== carro) {
-          opcoes.push(i);
-        }
-      }
-      portaAberta = opcoes[Math.floor(Math.random() * opcoes.length)];
-
-      portas[portaAberta].classList.add('aberta');
-      portas[portaAberta].innerText = '🐐';
+    else if (fase === 2) {
+      if (id === portaAberta) return;
+      finalizarJogo(id);
+      fase = 3;
     }
+  });
+});
 
-    function finalizarJogo(escolhaFinal) {
-      portas.forEach((p, i) => {
-        p.style.pointerEvents = 'none';
-        if (i === carro) {
-          p.innerText = '🚗';
-        } else if (i !== portaAberta) {
-          p.innerText = '🐐';
-        }
-      });
+function reiniciar() {
+  iniciarJogo();
+}
 
-      if (escolhaFinal === carro) {
-        resultado.innerText = "🎉 Você ganhou!";
-      } else {
-        resultado.innerText = "😢 Você perdeu!";
-      }
-    }
+function resetarEstatisticas() {
+  totalJogos = 0;
+  vitoriasManter = 0;
+  vitoriasTrocar = 0;
+  atualizarPainel();
+}
 
-    portas.forEach(porta => {
-      porta.addEventListener('click', () => {
-        const id = parseInt(porta.dataset.id);
-
-        if (fase === 1) {
-          escolhaInicial = id;
-          abrirPortaCabra();
-          fase = 2;
-          resultado.innerText = "Deseja trocar de porta? Clique em outra porta.";
-        }
-        else if (fase === 2) {
-          if (id === portaAberta) return;
-          finalizarJogo(id);
-          fase = 3;
-        }
-      });
-    });
-
-    function reiniciar() {
-      iniciarJogo();
-    }
-
-    iniciarJogo();
-  </script>
+iniciarJogo();
+atualizarPainel();
+</script>
 
 </body>
 </html>
